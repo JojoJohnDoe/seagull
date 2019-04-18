@@ -1,8 +1,11 @@
 import { Console } from 'console'
+import { render } from 'ink'
+import * as React from 'react'
 import * as ts from 'typescript'
 
 import * as process from 'process'
 import { ServiceEventBus } from './'
+import { Printer } from './output/print'
 
 export const LogEvent = Symbol('Logging Event')
 
@@ -24,13 +27,16 @@ export class OutputService {
   console: Console
   bus: ServiceEventBus<OutputServiceEvents>
 
+  printer: any
+
   constructor(
     bus: OutputService['bus'],
     { stdout = process.stdout, stderr = process.stderr }
   ) {
+    this.console = new Console(stdout, stderr)
+    this.printer = render(React.createElement(Printer, { text: 'bla' }), stdout)
     this.bus = bus
     this.bus.on(LogEvent, this.log.bind(this))
-    this.console = new Console(stdout, stderr)
   }
 
   logTSCDiagnostic = (diagnostic: ts.Diagnostic) =>
@@ -50,7 +56,9 @@ export class OutputService {
       data.time = `${data.time[0]}s ${(data.time[1] / 1000000).toFixed()}ms`
     }
     const type = `${module}:${event}`
-    switch (type) {
+
+    this.printer.rerender(React.createElement(Printer, { text: event }))
+    /* switch (type) {
       case 'CompilerService:diagnostic':
         this.logTSCDiagnostic(data.diagnostic)
         break
@@ -59,7 +67,7 @@ export class OutputService {
         break
       default:
         this.console.log(module, event, data)
-    }
+    } */
   }
 }
 
